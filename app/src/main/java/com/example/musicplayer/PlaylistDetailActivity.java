@@ -9,17 +9,17 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import com.example.musicplayer.db.AppDatabase;
-import com.example.musicplayer.db.SongEntity;
+import com.example.musicplayer.model.PlaylistModel;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PlaylistDetailActivity extends AppCompatActivity {
     ListView listView;
     TextView tvName;
-    AppDatabase db;
-    int playlistId;
+    FirestoreHelper fs;
+    String playlistId;
     String playlistName;
+    ArrayList<String> songIds;
     List<Song> songs = new ArrayList<>();
 
     @Override
@@ -27,11 +27,13 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_playlist_detail);
 
-        db = AppDatabase.getDatabase(this);
-        playlistId = getIntent().getIntExtra("PLAYLIST_ID", -1);
-        playlistName = getIntent().getStringExtra("PLAYLIST_NAME");
+        fs = new FirestoreHelper(this);
 
-        if (playlistId == -1) {
+        playlistId = getIntent().getStringExtra("PLAYLIST_ID");
+        playlistName = getIntent().getStringExtra("PLAYLIST_NAME");
+        songIds = getIntent().getStringArrayListExtra("SONG_IDS");
+
+        if (playlistId == null) {
             finish();
             return;
         }
@@ -49,24 +51,29 @@ public class PlaylistDetailActivity extends AppCompatActivity {
     }
 
     private void loadSongs() {
-        List<SongEntity> entities = db.playlistDao().getSongsForPlaylist(playlistId);
-        songs.clear();
-        List<String> titles = new ArrayList<>();
-        for (SongEntity e : entities) {
-            songs.add(new Song(e.resId, e.title, e.artist, e.genre));
-            titles.add(e.title + " - " + e.artist);
-        }
+        PlaylistModel tempModel = new PlaylistModel();
+        tempModel.setSongIds(songIds);
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, titles) {
-             @NonNull
-             @Override
-             public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-                 View view = super.getView(position, convertView, parent);
-                 TextView text = view.findViewById(android.R.id.text1);
-                 text.setTextColor(getResources().getColor(android.R.color.white));
-                 return view;
-             }
-        };
-        listView.setAdapter(adapter);
+        fs.getSongsForPlaylist(tempModel, loadedSongs -> {
+            songs = loadedSongs;
+            List<String> titles = new ArrayList<>();
+            for (Song s : songs) {
+                titles.add(s.getTitle() + " - " + s.getArtist());
+            }
+
+            runOnUiThread(() -> {
+                ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, titles) {
+                     @NonNull
+                     @Override
+                     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                         View view = super.getView(position, convertView, parent);
+                         TextView text = view.findViewById(android.R.id.text1);
+                         text.setTextColor(getResources().getColor(android.R.color.white));
+                         return view;
+                     }
+                };
+                listView.setAdapter(adapter);
+            });
+        });
     }
 }

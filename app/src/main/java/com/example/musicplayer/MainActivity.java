@@ -19,6 +19,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import java.util.Locale;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,12 +46,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Check Login
-        SessionManager session = new SessionManager(this);
-        if (!session.isLoggedIn()) {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
         }
+
+        // Seed Firestore if needed (Async)
+        new FirestoreHelper(this).seedSongsIfEmpty(MusicLibrary.getSongList(), null);
 
         // Setup Profile Button
         ImageButton btnProfile = findViewById(R.id.btnProfile);

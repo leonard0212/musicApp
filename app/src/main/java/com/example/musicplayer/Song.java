@@ -5,6 +5,7 @@ public class Song {
     private String title;
     private String artist;
     private String genre;
+    private String firestoreId;
 
     public Song(int resId, String title, String artist, String genre) {
         this.resId = resId;
@@ -27,5 +28,13 @@ public class Song {
 
     public String getGenre() {
         return genre;
+    }
+
+    public String getFirestoreId() {
+        return firestoreId;
+    }
+
+    public void setFirestoreId(String firestoreId) {
+        this.firestoreId = firestoreId;
     }
 }

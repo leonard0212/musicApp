@@ -1,55 +1,61 @@
-# Music Player App with Authentication & Database
+# Music Player App with Firebase Cloud Backend
 
-This project is an Android Music Player application that includes User Authentication, Playlist management, and a local Database architecture.
+This project is an Android Music Player application that uses **Firebase Authentication** and **Cloud Firestore** to manage users, playlists, and music metadata in the cloud.
 
 ## Features
 
-*   **User Authentication:** Sign Up and Sign In functionality.
-*   **Database:** Local SQLite database using **Room Persistence Library**.
-*   **Profile Management:** Edit username/password, view account details.
-*   **Playlists:** Create custom playlists, add songs from the library (Long-press), and play them.
-*   **Music Library:** Browse and play songs.
+*   **Cloud Authentication:** Secure Sign Up and Sign In using Firebase Auth (Email/Password).
+*   **Cloud Database:** Playlists and User profiles are stored in Firestore, accessible from any device logged into the same account.
+*   **Music Library:** Music metadata is synced to the cloud. The app automatically seeds the database on the first run.
+*   **Playlists:** Create playlists, add songs, and play them.
 
-## Getting Started
+## ⚠️ CRITICAL SETUP INSTRUCTIONS ⚠️
 
-### Prerequisites
+To make this app work, you **MUST** connect it to your own Firebase project.
 
-*   **Android Studio** (Latest version recommended).
-*   **Java Development Kit (JDK) 11**.
-*   Android SDK (API 34/35).
+### 1. Create a Firebase Project
+1.  Go to the [Firebase Console](https://console.firebase.google.com/).
+2.  Click **Add project** and give it a name (e.g., "MusicPlayerApp").
+3.  Disable Google Analytics for simplicity (optional).
+4.  Click **Create project**.
 
-### How to Run
+### 2. Add Android App to Firebase
+1.  In your Firebase project overview, click the **Android** icon.
+2.  **Package name:** `com.example.musicplayer` (This must match exactly).
+3.  Click **Register app**.
+4.  **Download config file:** Download `google-services.json`.
+5.  **Move the file:** Place `google-services.json` inside the `app/` directory of this project (`MusicPlayer/app/google-services.json`).
 
-1.  **Open Project:**
-    *   Open Android Studio.
-    *   Select `File > Open...` and choose the root directory of this project.
+### 3. Enable Authentication
+1.  In Firebase Console, go to **Build > Authentication**.
+2.  Click **Get started**.
+3.  Select **Email/Password** from the Sign-in method list.
+4.  Enable **Email/Password** and click **Save**.
 
-2.  **Sync Gradle:**
-    *   Wait for Android Studio to download dependencies and sync the project.
-    *   If prompted, update the Android Gradle Plugin to the suggested version.
+### 4. Enable Cloud Firestore
+1.  In Firebase Console, go to **Build > Firestore Database**.
+2.  Click **Create database**.
+3.  Select a location (e.g., `eur3` or `us-central`).
+4.  **Start in Test Mode:** Select "Start in test mode" (This allows read/write access for development).
+    *   *Note: In production, you should set up proper security rules.*
 
-3.  **Run the App:**
-    *   Connect an Android device or create an Emulator (AVD).
-    *   Click the green **Run** button (Shift+F10).
+### 5. Run the App
+1.  Open Android Studio.
+2.  Sync Gradle files.
+3.  Run the app on an Emulator or Device.
+4.  **First Run:** Sign up for an account. The app will automatically upload the song list to your new Firestore database.
 
-## Database Setup
+## Technical Details
 
-**Good news! You don't need to do anything manually.**
+*   **Firebase SDK:** Auth, Firestore.
+*   **Architecture:** Async callbacks for data fetching.
+*   **Data Model:**
+    *   `users`: Stores username/email.
+    *   `songs`: Stores song metadata and resource name mapping.
+    *   `playlists`: Stores playlist name, owner ID, and list of song IDs.
 
-The application is designed to handle the database setup automatically:
+## Troubleshooting
 
-1.  **Auto-Creation:** The Room database (`music_player_database`) is created automatically when you launch the app for the first time.
-2.  **Auto-Seeding:** On the very first run, the app checks if the song library is empty. If it is, it automatically populates the database with the default songs found in `MusicLibrary.java`.
-
-**Note:** If you want to reset the database completely, simply **uninstall the app** from your device/emulator and run it again.
-
-## How to Use
-
-1.  **Register:** On the first screen, click "Sign Up" to create a new account.
-2.  **Login:** Use your credentials to log in.
-3.  **Create Playlist:** Go to your **Profile** (top-right icon on Home screen) -> Click "New Playlist".
-4.  **Add Songs:**
-    *   Go to **Music Library**.
-    *   **Long-press** on any song.
-    *   Select the playlist you want to add the song to.
-5.  **Play Playlist:** Go to **Profile** -> Click on a playlist name to open and play it.
+*   **Crash on startup:** Did you add `google-services.json` to the `app/` folder?
+*   **"Registration Failed":** Check if Email/Password Auth is enabled in Firebase Console.
+*   **Empty Library:** Wait a few seconds for the initial sync/seed to complete on the first login.

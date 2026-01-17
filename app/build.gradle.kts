@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -14,13 +15,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Export schemas for Room (optional but good practice, though we might skip the folder setup)
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments["room.schemaLocation"] = "\$projectDir/schemas"
-            }
-        }
     }
 
     buildTypes {
@@ -44,9 +38,10 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
 
-    // Room components
-    implementation(libs.room.runtime)
-    annotationProcessor(libs.room.compiler)
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

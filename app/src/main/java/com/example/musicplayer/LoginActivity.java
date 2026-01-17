@@ -7,51 +7,50 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.example.musicplayer.db.AppDatabase;
-import com.example.musicplayer.db.User;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class LoginActivity extends AppCompatActivity {
-    EditText etUsername, etPassword;
+    EditText etEmail, etPassword;
     Button btnLogin;
     TextView tvGoToRegister;
-    AppDatabase db;
-    SessionManager session;
+    FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        db = AppDatabase.getDatabase(this);
-        session = new SessionManager(this);
+        mAuth = FirebaseAuth.getInstance();
 
-        if (session.isLoggedIn()) {
+        if (mAuth.getCurrentUser() != null) {
             startActivity(new Intent(LoginActivity.this, MainActivity.class));
             finish();
         }
 
-        etUsername = findViewById(R.id.etUsername);
+        etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
         btnLogin = findViewById(R.id.btnLogin);
         tvGoToRegister = findViewById(R.id.tvGoToRegister);
 
         btnLogin.setOnClickListener(v -> {
-            String username = etUsername.getText().toString().trim();
+            String email = etEmail.getText().toString().trim();
             String password = etPassword.getText().toString().trim();
 
-            if (username.isEmpty() || password.isEmpty()) {
+            if (email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
             } else {
-                String hashedPassword = SecurityUtil.hashPassword(password);
-                User user = db.userDao().login(username, hashedPassword);
-                if (user != null) {
-                    session.createLoginSession(user.uid);
-                    Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                    finish();
-                } else {
-                    Toast.makeText(this, "Invalid Credentials", Toast.LENGTH_SHORT).show();
-                }
+                mAuth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this, task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show();
+                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                            finish();
+                        } else {
+                            // Check for google-services.json missing common error
+                            String msg = task.getException().getMessage();
+                            Toast.makeText(this, "Auth Failed: " + msg, Toast.LENGTH_LONG).show();
+                        }
+                    });
             }
         });
 

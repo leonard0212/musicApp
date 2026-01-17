@@ -7,21 +7,23 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.example.musicplayer.db.AppDatabase;
-import com.example.musicplayer.db.User;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class RegisterActivity extends AppCompatActivity {
     EditText etUsername, etEmail, etPassword;
     Button btnRegister;
     TextView tvGoToLogin;
-    AppDatabase db;
+    FirebaseAuth mAuth;
+    FirestoreHelper firestoreHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        db = AppDatabase.getDatabase(this);
+        mAuth = FirebaseAuth.getInstance();
+        firestoreHelper = new FirestoreHelper(this);
 
         etUsername = findViewById(R.id.etRegUsername);
         etEmail = findViewById(R.id.etRegEmail);
@@ -37,17 +39,19 @@ public class RegisterActivity extends AppCompatActivity {
             if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
             } else {
-                User existing = db.userDao().checkUsername(username);
-                if (existing == null) {
-                    String hashedPassword = SecurityUtil.hashPassword(password);
-                    User newUser = new User(username, hashedPassword, email);
-                    db.userDao().insert(newUser);
-                    Toast.makeText(this, "Registration Successful! Please Login.", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
-                    finish();
-                } else {
-                    Toast.makeText(this, "Username already exists", Toast.LENGTH_SHORT).show();
-                }
+                mAuth.createUserWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this, task -> {
+                        if (task.isSuccessful()) {
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            firestoreHelper.createUser(user.getUid(), username, email);
+
+                            Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
+                            startActivity(new Intent(RegisterActivity.this, MainActivity.class));
+                            finish();
+                        } else {
+                            Toast.makeText(this, "Registration Failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
             }
         });
 
