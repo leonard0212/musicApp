@@ -1,10 +1,11 @@
 package com.example.musicplayer;
 
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack; // Import Stack
+import java.util.Stack;
 
 public class MusicPlayerManager {
 
@@ -15,8 +16,6 @@ public class MusicPlayerManager {
     private boolean isShuffle = false;
     private boolean isRepeat = false;
     private List<Runnable> listeners = new ArrayList<>();
-
-    // History Stack to remember played songs
     private Stack<Integer> songHistory = new Stack<>();
 
     private MusicPlayerManager() {}
@@ -35,11 +34,9 @@ public class MusicPlayerManager {
     }
 
     public void playSong(Context context, List<Song> songs, int index) {
-        // If we are switching to a completely new playlist, clear history
         if (!songs.equals(currentPlaylist)) {
             songHistory.clear();
         } else {
-            // If just jumping around same list, save current spot before moving
             if (!currentPlaylist.isEmpty()) {
                 songHistory.push(currentIndex);
             }
@@ -54,16 +51,30 @@ public class MusicPlayerManager {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
             mediaPlayer.release();
+            mediaPlayer = null;
         }
 
         if (currentPlaylist.isEmpty()) return;
 
         Song song = currentPlaylist.get(currentIndex);
 
-        // REVERTED: Standard resource playback only (No Audio URI)
-        mediaPlayer = MediaPlayer.create(context, song.getResId());
+        try {
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioAttributes(
+                new AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build()
+            );
 
-        if (mediaPlayer != null) {
+            // Play from URL
+            mediaPlayer.setDataSource(song.getFileUrl());
+
+            mediaPlayer.setOnPreparedListener(mp -> {
+                mp.start();
+                notifyUI();
+            });
+
             mediaPlayer.setOnCompletionListener(mp -> {
                 if (isRepeat) {
                     playCurrentSong(context);
@@ -72,8 +83,12 @@ public class MusicPlayerManager {
                 }
             });
 
-            mediaPlayer.start();
-            notifyUI();
+            // Prepare async because it's a network stream
+            mediaPlayer.prepareAsync();
+            notifyUI(); // Update UI immediately to show loading or title
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -87,15 +102,11 @@ public class MusicPlayerManager {
 
     public void playNext(Context context) {
         if (currentPlaylist.isEmpty()) return;
-
-        // Save current song to history before leaving
         songHistory.push(currentIndex);
 
         if (isShuffle) {
-            // Pick a random index
             currentIndex = (int) (Math.random() * currentPlaylist.size());
         } else {
-            // Go to next linearly
             currentIndex = (currentIndex + 1) % currentPlaylist.size();
         }
         playCurrentSong(context);
@@ -103,21 +114,15 @@ public class MusicPlayerManager {
 
     public void playPrevious(Context context) {
         if (currentPlaylist.isEmpty()) return;
-
-        // 1. RESTART LOGIC: If played > 5 seconds, restart song
         if (mediaPlayer != null && mediaPlayer.getCurrentPosition() > 5000) {
             mediaPlayer.seekTo(0);
             return;
         }
-
-        // 2. HISTORY LOGIC: Go back to the specific song previously played
         if (!songHistory.isEmpty()) {
             currentIndex = songHistory.pop();
         } else {
-            // Fallback (Linear previous) if no history exists
             currentIndex = (currentIndex - 1 + currentPlaylist.size()) % currentPlaylist.size();
         }
-
         playCurrentSong(context);
     }
 

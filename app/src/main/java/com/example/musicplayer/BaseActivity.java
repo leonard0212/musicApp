@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import com.squareup.picasso.Picasso;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
@@ -135,8 +136,11 @@ public abstract class BaseActivity extends AppCompatActivity {
         title.setText(currentSong.getTitle());
         artist.setText(currentSong.getArtist());
 
-        int resId = ArtistImageHelper.getArtistImageResource(this, currentSong.getArtist());
-        art.setImageResource(resId);
+        if (currentSong.getImageUrl() != null && !currentSong.getImageUrl().isEmpty()) {
+            Picasso.get().load(currentSong.getImageUrl()).placeholder(android.R.drawable.ic_menu_gallery).into(art);
+        } else {
+            art.setImageResource(android.R.drawable.ic_menu_gallery);
+        }
 
         if (MusicPlayerManager.getInstance().isPlaying()) {
             btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);

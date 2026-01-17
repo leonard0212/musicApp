@@ -19,6 +19,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import java.util.Locale;
+import com.squareup.picasso.Picasso;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Handler handler = new Handler();
     private Runnable updateSeekBarRunnable;
+    private PocketBaseHelper pbHelper;
 
     // Listener reference
     private final Runnable musicListener = this::updateUI;
@@ -43,6 +45,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        pbHelper = new PocketBaseHelper(this);
+        // Check Login
+        if (!pbHelper.isLoggedIn()) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        // Setup Profile Button
+        ImageButton btnProfile = findViewById(R.id.btnProfile);
+        btnProfile.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, ProfileActivity.class)));
 
         // 2. Setup Swipe Down Listener on the Root View
         View rootView = findViewById(R.id.main);
@@ -158,8 +172,14 @@ public class MainActivity extends AppCompatActivity {
         tvSongTitle.setText(currentSong.getTitle());
         tvArtist.setText(currentSong.getArtist());
 
-        int resId = ArtistImageHelper.getArtistImageResource(this, currentSong.getArtist());
-        albumArt.setImageResource(resId);
+        if (currentSong.getImageUrl() != null && !currentSong.getImageUrl().isEmpty()) {
+            Picasso.get().load(currentSong.getImageUrl())
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_gallery)
+                    .into(albumArt);
+        } else {
+            albumArt.setImageResource(android.R.drawable.ic_menu_gallery);
+        }
 
         updatePlayPauseButton();
 

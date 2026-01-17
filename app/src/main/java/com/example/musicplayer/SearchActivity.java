@@ -12,30 +12,34 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SearchActivity extends BaseActivity {
 
-    private List<Song> allSongs;
+    private List<Song> allSongs = new ArrayList<>();
     private List<Song> filteredSongs;
     private SearchAdapter adapter;
+    private PocketBaseHelper pbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
+        pbHelper = new PocketBaseHelper(this);
 
         EditText etSearch = findViewById(R.id.etSearch);
         ListView lvResults = findViewById(R.id.lvSearchResults);
 
-        allSongs = MusicLibrary.getSongList();
-
-        // CHANGED: Start with an EMPTY list (Cleaner look)
         filteredSongs = new ArrayList<>();
-
         adapter = new SearchAdapter(filteredSongs);
         lvResults.setAdapter(adapter);
+
+        // Fetch all songs
+        pbHelper.getAllSongs(songs -> {
+            allSongs = songs;
+        });
 
         // Search Logic
         etSearch.addTextChangedListener(new TextWatcher() {
@@ -51,16 +55,12 @@ public class SearchActivity extends BaseActivity {
             public void afterTextChanged(Editable s) {}
         });
 
-        // Click to Play (Play song and stay on this screen or go to main)
         lvResults.setOnItemClickListener((parent, view, position, id) -> {
             MusicPlayerManager.getInstance().playSong(this, filteredSongs, position);
-            // Optionally, we can stay here (like the library) or open the player.
-            // Let's stick to the flow of opening the player for search results:
             Intent intent = new Intent(SearchActivity.this, MainActivity.class);
             startActivity(intent);
         });
 
-        // Init Bottom Bars
         setupMiniPlayer();
         setupBottomNavigation();
     }
@@ -68,8 +68,7 @@ public class SearchActivity extends BaseActivity {
     private void filter(String query) {
         filteredSongs.clear();
 
-        // CHANGED: Only show results if the user has typed something
-        if (!query.isEmpty()) {
+        if (!query.isEmpty() && !allSongs.isEmpty()) {
             String lowerQuery = query.toLowerCase();
             for (Song song : allSongs) {
                 if (song.getTitle().toLowerCase().contains(lowerQuery) ||
@@ -78,23 +77,15 @@ public class SearchActivity extends BaseActivity {
                 }
             }
         }
-
         adapter.notifyDataSetChanged();
     }
 
     private class SearchAdapter extends BaseAdapter {
         private List<Song> songs;
-
-        public SearchAdapter(List<Song> songs) {
-            this.songs = songs;
-        }
-
-        @Override
-        public int getCount() { return songs.size(); }
-        @Override
-        public Object getItem(int position) { return songs.get(position); }
-        @Override
-        public long getItemId(int position) { return position; }
+        public SearchAdapter(List<Song> songs) { this.songs = songs; }
+        @Override public int getCount() { return songs.size(); }
+        @Override public Object getItem(int position) { return songs.get(position); }
+        @Override public long getItemId(int position) { return position; }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
@@ -110,7 +101,12 @@ public class SearchActivity extends BaseActivity {
 
             title.setText(song.getTitle());
             artist.setText(song.getArtist());
-            image.setImageResource(ArtistImageHelper.getArtistImageResource(SearchActivity.this, song.getArtist()));
+
+            if (song.getImageUrl() != null && !song.getImageUrl().isEmpty()) {
+                Picasso.get().load(song.getImageUrl()).placeholder(android.R.drawable.ic_menu_gallery).into(image);
+            } else {
+                image.setImageResource(android.R.drawable.ic_menu_gallery);
+            }
 
             return convertView;
         }
