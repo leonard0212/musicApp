@@ -1,61 +1,77 @@
-# Music Player App with Firebase Cloud Backend
+# Music Player App - Self-Hosted Setup (Windows Server 2022)
 
-This project is an Android Music Player application that uses **Firebase Authentication** and **Cloud Firestore** to manage users, playlists, and music metadata in the cloud.
+This app connects to a **PocketBase** backend hosted on your Windows Server. This allows you to host your own database, MP3s, and images without any file size limits or recurring cloud costs.
 
-## Features
+## 1. Server Setup (On Windows Server 2022)
 
-*   **Cloud Authentication:** Secure Sign Up and Sign In using Firebase Auth (Email/Password).
-*   **Cloud Database:** Playlists and User profiles are stored in Firestore, accessible from any device logged into the same account.
-*   **Music Library:** Music metadata is synced to the cloud. The app automatically seeds the database on the first run.
-*   **Playlists:** Create playlists, add songs, and play them.
+### Step A: Download PocketBase
+1.  Go to [pocketbase.io/docs](https://pocketbase.io/docs) and download the **Windows** zip file (`pocketbase_x.x.x_windows_amd64.zip`).
+2.  Extract the zip file to a folder, e.g., `C:\PocketBase`.
 
-## ⚠️ CRITICAL SETUP INSTRUCTIONS ⚠️
+### Step B: Run the Server
+1.  Open **PowerShell** or **Command Prompt** as Administrator.
+2.  Navigate to the folder:
+    ```powershell
+    cd C:\PocketBase
+    ```
+3.  Run the server to listen on all IP addresses (important for external access):
+    ```powershell
+    .\pocketbase.exe serve --http="0.0.0.0:8090"
+    ```
+4.  Keep this window open.
 
-To make this app work, you **MUST** connect it to your own Firebase project.
+### Step C: Configure Firewall
+1.  Open **Windows Defender Firewall with Advanced Security**.
+2.  Click **Inbound Rules** -> **New Rule**.
+3.  Select **Port** -> **TCP**.
+4.  Specific local ports: `8090`.
+5.  Allow the connection.
+6.  Name it "PocketBase".
 
-### 1. Create a Firebase Project
-1.  Go to the [Firebase Console](https://console.firebase.google.com/).
-2.  Click **Add project** and give it a name (e.g., "MusicPlayerApp").
-3.  Disable Google Analytics for simplicity (optional).
-4.  Click **Create project**.
+### Step D: Admin Setup & Data Structure
+1.  Open a browser on your server and go to `http://localhost:8090/_/`.
+2.  Create your Admin account (email/password).
+3.  **Create Collections:**
+    *   **songs**:
+        *   Field: `title` (Text)
+        *   Field: `artist` (Text)
+        *   Field: `genre` (Text)
+        *   Field: `audio_file` (File) -> **Important:** In options, allow MIME types `audio/mpeg`, `audio/mp3`.
+        *   Field: `album_art` (File) -> Allow images.
+    *   **playlists**:
+        *   Field: `name` (Text)
+        *   Field: `owner` (Relation -> users)
+        *   Field: `songs` (Relation -> songs, **Enable Multiple**)
+    *   **users**: (Already exists). Add a `name` text field if you want.
 
-### 2. Add Android App to Firebase
-1.  In your Firebase project overview, click the **Android** icon.
-2.  **Package name:** `com.example.musicplayer` (This must match exactly).
-3.  Click **Register app**.
-4.  **Download config file:** Download `google-services.json`.
-5.  **Move the file:** Place `google-services.json` inside the `app/` directory of this project (`MusicPlayer/app/google-services.json`).
+4.  **Add API Rules (Permissions):**
+    *   Click the "Settings" (gear) icon next to each collection.
+    *   Select **API Rules**.
+    *   For **songs**: Set "List/Search" and "View" to empty (public) or `@request.auth.id != ""`.
+    *   For **playlists**: Set all rules to `@request.auth.id != ""` (only logged in users).
+    *   For **users**: Default rules are usually fine.
 
-### 3. Enable Authentication
-1.  In Firebase Console, go to **Build > Authentication**.
-2.  Click **Get started**.
-3.  Select **Email/Password** from the Sign-in method list.
-4.  Enable **Email/Password** and click **Save**.
+5.  **Upload Music:**
+    *   Go to the `songs` collection in the Admin UI.
+    *   Click "New Record".
+    *   Fill in Title, Artist, Genre.
+    *   **Upload your MP3 file** and **Image file**.
+    *   Click Save.
 
-### 4. Enable Cloud Firestore
-1.  In Firebase Console, go to **Build > Firestore Database**.
-2.  Click **Create database**.
-3.  Select a location (e.g., `eur3` or `us-central`).
-4.  **Start in Test Mode:** Select "Start in test mode" (This allows read/write access for development).
-    *   *Note: In production, you should set up proper security rules.*
+## 2. App Configuration
 
-### 5. Run the App
-1.  Open Android Studio.
-2.  Sync Gradle files.
-3.  Run the app on an Emulator or Device.
-4.  **First Run:** Sign up for an account. The app will automatically upload the song list to your new Firestore database.
+1.  Open `app/src/main/java/com/example/musicplayer/api/RetrofitClient.java`.
+2.  Find the line:
+    ```java
+    public static String BASE_URL = "http://10.0.2.2:8090/";
+    ```
+3.  Change `10.0.2.2` to the **Public IP Address** of your Windows Server.
+    *   Example: `http://192.168.1.50:8090/` (if on same WiFi)
+    *   Example: `http://203.0.113.5:8090/` (if accessing over internet - requires Port Forwarding on your router).
 
-## Technical Details
+4.  Build and Run the App.
 
-*   **Firebase SDK:** Auth, Firestore.
-*   **Architecture:** Async callbacks for data fetching.
-*   **Data Model:**
-    *   `users`: Stores username/email.
-    *   `songs`: Stores song metadata and resource name mapping.
-    *   `playlists`: Stores playlist name, owner ID, and list of song IDs.
-
-## Troubleshooting
-
-*   **Crash on startup:** Did you add `google-services.json` to the `app/` folder?
-*   **"Registration Failed":** Check if Email/Password Auth is enabled in Firebase Console.
-*   **Empty Library:** Wait a few seconds for the initial sync/seed to complete on the first login.
+## 3. Usage
+1.  Register a new account in the App.
+2.  Login.
+3.  You will see the songs you uploaded to the server!

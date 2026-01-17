@@ -1,40 +1,26 @@
 package com.example.musicplayer;
 
 public class Song {
-    private int resId;
+    private String id;
     private String title;
     private String artist;
     private String genre;
-    private String firestoreId;
+    private String fileUrl;
+    private String imageUrl;
 
-    public Song(int resId, String title, String artist, String genre) {
-        this.resId = resId;
+    public Song(String id, String title, String artist, String genre, String fileUrl, String imageUrl) {
+        this.id = id;
         this.title = title;
         this.artist = artist;
         this.genre = genre;
+        this.fileUrl = fileUrl;
+        this.imageUrl = imageUrl;
     }
 
-    public int getResId() {
-        return resId;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getArtist() {
-        return artist;
-    }
-
-    public String getGenre() {
-        return genre;
-    }
-
-    public String getFirestoreId() {
-        return firestoreId;
-    }
-
-    public void setFirestoreId(String firestoreId) {
-        this.firestoreId = firestoreId;
-    }
+    public String getId() { return id; }
+    public String getTitle() { return title; }
+    public String getArtist() { return artist; }
+    public String getGenre() { return genre; }
+    public String getFileUrl() { return fileUrl; }
+    public String getImageUrl() { return imageUrl; }
 }

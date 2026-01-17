@@ -19,7 +19,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import java.util.Locale;
-import com.google.firebase.auth.FirebaseAuth;
+import com.squareup.picasso.Picasso;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Handler handler = new Handler();
     private Runnable updateSeekBarRunnable;
+    private PocketBaseHelper pbHelper;
 
     // Listener reference
     private final Runnable musicListener = this::updateUI;
@@ -45,15 +46,13 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
+        pbHelper = new PocketBaseHelper(this);
         // Check Login
-        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+        if (!pbHelper.isLoggedIn()) {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
         }
-
-        // Seed Firestore if needed (Async)
-        new FirestoreHelper(this).seedSongsIfEmpty(MusicLibrary.getSongList(), null);
 
         // Setup Profile Button
         ImageButton btnProfile = findViewById(R.id.btnProfile);
@@ -173,8 +172,14 @@ public class MainActivity extends AppCompatActivity {
         tvSongTitle.setText(currentSong.getTitle());
         tvArtist.setText(currentSong.getArtist());
 
-        int resId = ArtistImageHelper.getArtistImageResource(this, currentSong.getArtist());
-        albumArt.setImageResource(resId);
+        if (currentSong.getImageUrl() != null && !currentSong.getImageUrl().isEmpty()) {
+            Picasso.get().load(currentSong.getImageUrl())
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_gallery)
+                    .into(albumArt);
+        } else {
+            albumArt.setImageResource(android.R.drawable.ic_menu_gallery);
+        }
 
         updatePlayPauseButton();
 

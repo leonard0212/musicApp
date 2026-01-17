@@ -1,5 +1,4 @@
 package com.example.musicplayer;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
@@ -7,22 +6,20 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.firebase.auth.FirebaseAuth;
 
 public class LoginActivity extends AppCompatActivity {
     EditText etEmail, etPassword;
     Button btnLogin;
     TextView tvGoToRegister;
-    FirebaseAuth mAuth;
+    PocketBaseHelper pbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        pbHelper = new PocketBaseHelper(this);
 
-        mAuth = FirebaseAuth.getInstance();
-
-        if (mAuth.getCurrentUser() != null) {
+        if (pbHelper.isLoggedIn()) {
             startActivity(new Intent(LoginActivity.this, MainActivity.class));
             finish();
         }
@@ -35,23 +32,20 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(v -> {
             String email = etEmail.getText().toString().trim();
             String password = etPassword.getText().toString().trim();
-
             if (email.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
-            } else {
-                mAuth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(this, task -> {
-                        if (task.isSuccessful()) {
-                            Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show();
-                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                            finish();
-                        } else {
-                            // Check for google-services.json missing common error
-                            String msg = task.getException().getMessage();
-                            Toast.makeText(this, "Auth Failed: " + msg, Toast.LENGTH_LONG).show();
-                        }
-                    });
+                Toast.makeText(this, "Fields empty", Toast.LENGTH_SHORT).show();
+                return;
             }
+
+            pbHelper.login(email, password, success -> {
+                if (success) {
+                    Toast.makeText(this, "Login Success", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                    finish();
+                } else {
+                    Toast.makeText(this, "Login Failed", Toast.LENGTH_SHORT).show();
+                }
+            });
         });
 
         tvGoToRegister.setOnClickListener(v -> {
