@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="?android:attr/selectableItemBackground">
+
+    <TextView
+        android:id="@+id/tvSongTitleItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Song Title"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary_text" />
+
+    <TextView
+        android:id="@+id/tvSongGenreItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Genre"
+        android:textSize="14sp"
+        android:textColor="@color/secondary_text"
+        android:layout_marginTop="4dp" />
+
+</LinearLayout>
