@@ -44,6 +44,18 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
+        // Check Login
+        SessionManager session = new SessionManager(this);
+        if (!session.isLoggedIn()) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        // Setup Profile Button
+        ImageButton btnProfile = findViewById(R.id.btnProfile);
+        btnProfile.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, ProfileActivity.class)));
+
         // 2. Setup Swipe Down Listener on the Root View
         View rootView = findViewById(R.id.main);
         rootView.setOnTouchListener(new OnSwipeTouchListener(MainActivity.this) {

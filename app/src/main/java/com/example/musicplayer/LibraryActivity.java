@@ -11,6 +11,13 @@ import android.widget.ListView;
 import android.widget.TextView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.List;
+import java.util.ArrayList;
+import com.example.musicplayer.db.AppDatabase;
+import com.example.musicplayer.db.SongEntity;
+import com.example.musicplayer.db.Playlist;
+import com.example.musicplayer.db.PlaylistSongCrossRef;
+import androidx.appcompat.app.AlertDialog;
+import android.widget.Toast;
 
 public class LibraryActivity extends BaseActivity {
 
@@ -30,10 +37,15 @@ public class LibraryActivity extends BaseActivity {
         String genreFilter = getIntent().getStringExtra("GENRE_FILTER");
         String genreImageName = getIntent().getStringExtra("GENRE_IMAGE");
 
+        AppDatabase db = AppDatabase.getDatabase(this);
+        displayedSongs = new ArrayList<>();
+
         // 1. Setup Data and UI
         if (genreFilter != null) {
             // Case A: Opened from Genres Page (Filtered)
-            displayedSongs = MusicLibrary.getSongsByGenre(genreFilter);
+            List<SongEntity> entities = db.songDao().getSongsByGenre(genreFilter);
+            for(SongEntity e : entities) displayedSongs.add(new Song(e.resId, e.title, e.artist, e.genre));
+
             title.setText(genreFilter);
 
             if (genreImageName != null) {
@@ -42,7 +54,9 @@ public class LibraryActivity extends BaseActivity {
             }
         } else {
             // Case B: Opened "Music Library" (All Songs)
-            displayedSongs = MusicLibrary.getSongList();
+            List<SongEntity> entities = db.songDao().getAllSongs();
+            for(SongEntity e : entities) displayedSongs.add(new Song(e.resId, e.title, e.artist, e.genre));
+
             title.setText("All Music");
 
             // NEW: Set the specific image for the main library
@@ -67,8 +81,41 @@ public class LibraryActivity extends BaseActivity {
             MusicPlayerManager.getInstance().playSong(LibraryActivity.this, displayedSongs, position);
         });
 
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            showAddToPlaylistDialog(displayedSongs.get(position));
+            return true;
+        });
+
         setupMiniPlayer();
         setupBottomNavigation();
+    }
+
+    private void showAddToPlaylistDialog(Song song) {
+        SessionManager session = new SessionManager(this);
+        if (!session.isLoggedIn()) return;
+
+        AppDatabase db = AppDatabase.getDatabase(this);
+        List<Playlist> playlists = db.playlistDao().getPlaylistsForUser(session.getUserId());
+
+        if (playlists.isEmpty()) {
+            Toast.makeText(this, "No playlists created yet.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] names = new String[playlists.size()];
+        for(int i=0; i<playlists.size(); i++) names[i] = playlists.get(i).name;
+
+        new AlertDialog.Builder(this)
+            .setTitle("Add to Playlist")
+            .setItems(names, (dialog, which) -> {
+                Playlist p = playlists.get(which);
+                SongEntity entity = db.songDao().getSongByResId(song.getResId());
+                if (entity != null) {
+                    db.playlistDao().addSongToPlaylist(new PlaylistSongCrossRef(p.playlistId, entity.songId));
+                    Toast.makeText(this, "Added to " + p.name, Toast.LENGTH_SHORT).show();
+                }
+            })
+            .show();
     }
 
     private class LibraryAdapter extends BaseAdapter {
